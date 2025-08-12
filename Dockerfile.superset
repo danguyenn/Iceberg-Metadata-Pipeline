@@ -1,0 +1,43 @@
+# Dockerfile.superset
+FROM apache/superset:5.0.0
+
+USER root
+
+# 1) Install OS-level deps including CA certificates
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+         build-essential \
+         gcc \
+         g++ \
+         python3-dev \
+         libpq-dev \
+         python3-venv \
+         ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
+
+# 2) Create virtualenv
+RUN python3 -m venv /app/.venv
+
+# 3) Upgrade pip & install Superset + extras
+RUN /app/.venv/bin/pip install --upgrade pip \
+    && /app/.venv/bin/pip install \
+         apache-superset[iceberg] \
+         psycopg2-binary \
+         pyhive[hive]
+
+# 4) Copy config & entrypoint
+COPY superset_config.py /app/pythonpath/superset_config.py
+COPY entrypoint-superset.sh /entrypoint-superset.sh
+COPY pyhive_spark_patch.py /app/pythonpath/pyhive_spark_patch.py
+
+
+# 5) Permissions
+RUN chmod +x /entrypoint-superset.sh \
+    && chown superset:superset \
+         /entrypoint-superset.sh \
+         /app/pythonpath/superset_config.py
+
+USER superset
+
+ENTRYPOINT ["/entrypoint-superset.sh"]
