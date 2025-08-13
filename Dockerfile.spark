@@ -32,7 +32,6 @@ RUN mkdir -p $SPARK_HOME/jars \
 
 # 3) Copy your Iceberg-ready Spark defaults
 COPY conf/spark-defaults.conf $SPARK_HOME/conf/
-COPY conf/log4j.properties $SPARK_HOME/conf/
 
 # 4) Build your Java metadata importer
 WORKDIR /opt/app
