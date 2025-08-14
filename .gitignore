@@ -2,4 +2,7 @@ data/
 warehouse/
 target/
 path/
+.venv/
+data_casted/
+system_counters_data/
 sample_queries.py

@@ -30,6 +30,7 @@ services:
     volumes:
       - ./warehouse:/warehouse
       - ./data:/data
+      - spark_tmp:/var/lib/spark/tmp
     environment:
       - SPARK_CONF_DIR=/opt/spark/conf
     ports:
@@ -37,6 +38,7 @@ services:
     depends_on:
       catalogtest-postgres:
         condition: service_healthy
+    mem_limit: 10g
     networks:
       default: {}
 
@@ -64,6 +66,7 @@ services:
 
 volumes:
   pgdata:
+  spark_tmp:
 
 networks:
   default:
