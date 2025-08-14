@@ -28,10 +28,21 @@ Walks a dataset directory holding parquet files, generates Apache Hadoop Catalog
 
 # Prerequisites:
     - Create and populate data directory
-        - Inside data directory will be folders (representing different tables) holding your raw parquet files that will be aggregated to their respective tables
+        - Inside data directory will be folders (representing different tables) 
+        holding your raw parquet files that will be aggregated to their respective tables
     
     - Create empty warehouse directory
         - This will hold your table's metadata
+
+    Example Directory:
+
+    data/
+    ├── for_hire/
+    │   ├── fhv_tripdata_2025-01.parquet
+    │   ├── fhv_tripdata_2025-02.parquet
+    │   └── fhv_tripdata_2025-03.parquet
+    ├── green_taxi/
+    └── high_volume_for_hire/
 
 # Run Project:
     docker-compose up -d --build
