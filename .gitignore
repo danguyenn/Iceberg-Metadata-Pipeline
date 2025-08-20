@@ -6,3 +6,4 @@ path/
 data_casted/
 system_counters_data/
 sample_queries.py
+.DS_Store
