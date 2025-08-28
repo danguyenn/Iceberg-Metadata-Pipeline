@@ -5,11 +5,11 @@ set -euo pipefail
 # Spark Thrift Server (Iceberg) entrypoint
 # =========================================
 # Tunables (override via env)
-SPARK_LOCAL_THREADS="${SPARK_LOCAL_THREADS:-2}"             # modest local concurrency to reduce heap pressure
-SPARK_DRIVER_MEMORY="${SPARK_DRIVER_MEMORY:-8g}"            # driver heap (local mode runs tasks in-driver)
-SPARK_DRIVER_OVERHEAD="${SPARK_DRIVER_OVERHEAD:-1g}"        # off-heap/overhead for shuffle/codegen
-SPARK_DEFAULT_CATALOG="${SPARK_DEFAULT_CATALOG:-iceberg}"   # default Spark SQL catalog name (Iceberg)
-SPARK_MASTER="${SPARK_MASTER:-local[${SPARK_LOCAL_THREADS}]}" # change to e.g. "local[*]" or a cluster master URL
+SPARK_LOCAL_THREADS="${SPARK_LOCAL_THREADS:-2}"               # modest local concurrency
+SPARK_DRIVER_MEMORY="${SPARK_DRIVER_MEMORY:-8g}"              # driver heap
+SPARK_DRIVER_OVERHEAD="${SPARK_DRIVER_OVERHEAD:-1g}"          # off-heap/overhead
+SPARK_DEFAULT_CATALOG="${SPARK_DEFAULT_CATALOG:-iceberg}"     # default Spark SQL catalog
+SPARK_MASTER="${SPARK_MASTER:-local[${SPARK_LOCAL_THREADS}]}" # or local[*]/cluster URL
 
 WAREHOUSE="${WAREHOUSE_URI:-file:///warehouse}"
 THRIFT_HOST="${THRIFT_HOST:-0.0.0.0}"
@@ -91,24 +91,25 @@ cmd=(
   --conf "spark.sql.catalog.${SPARK_DEFAULT_CATALOG}.warehouse=${WAREHOUSE}"
   --conf "spark.sql.catalog.${SPARK_DEFAULT_CATALOG}.io-impl=org.apache.iceberg.hadoop.HadoopFileIO"
 
-  # Ensure built-in spark_catalog is Iceberg-backed too (avoids Hive Derby warehouse noise)
+  # Ensure built-in spark_catalog is Iceberg-backed too
   --conf "spark.sql.catalog.spark_catalog=org.apache.iceberg.spark.SparkSessionCatalog"
   --conf "spark.sql.catalog.spark_catalog.type=hadoop"
 
-  # Keep Spark's warehouse dir aligned (some subsystems still log this)
+  # Keep Spark's warehouse dir aligned
   --conf "spark.sql.warehouse.dir=${WAREHOUSE}"
 
-  # ---- Thrift Server network ----
-  --conf "spark.thriftserver.thrift.bind.host=${THRIFT_HOST}"
-  --conf "spark.thriftserver.thrift.port=${THRIFT_PORT}"
+  # ---- HiveServer2 (via Hadoop conf pass-through) ----
+  # These MUST be set as spark.hadoop.* to reach Hive's configuration.
+  --conf "spark.hadoop.hive.server2.thrift.bind.host=${THRIFT_HOST}"
+  --conf "spark.hadoop.hive.server2.thrift.port=${THRIFT_PORT}"
+  --conf "spark.hadoop.hive.server2.transport.mode=binary"
+  --conf "spark.hadoop.hive.server2.authentication=NOSASL"
 
   # ---- Thrift Server behavior & streaming results to client ----
-  # (Spark will ignore unknown keys harmlessly if version differs)
   --conf "spark.sql.hive.thriftServer.singleSession=${SPARK_THRIFT_SINGLE_SESSION}"
   --conf "spark.sql.hive.thriftServer.incrementalCollect=${SPARK_THRIFT_INCREMENTAL_COLLECT}"
 
   # ---- Memory-pressure, shuffle & scan tuning ----
-  # Prefer sort-based aggregates to reduce hashmap heap churn
   --conf "spark.sql.execution.useObjectHashAggregate=false"
 
   # Adaptive Query Execution + sensible partition sizing/coalesce
@@ -125,7 +126,7 @@ cmd=(
   --conf "spark.sql.parquet.enableVectorizedReader=true"
   --conf "spark.sql.parquet.filterPushdown=true"
 
-  # Broadcasts & timeouts (avoid flakiness on larger scans)
+  # Broadcasts & timeouts
   --conf "spark.sql.autoBroadcastJoinThreshold=${SPARK_SQL_AUTO_BROADCAST_JOIN_THRESHOLD}"
   --conf "spark.sql.broadcastTimeout=${SPARK_SQL_BROADCAST_TIMEOUT}"
   --conf "spark.network.timeout=${SPARK_NETWORK_TIMEOUT}"
